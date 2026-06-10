@@ -1058,7 +1058,7 @@ function normalizeProducts(list) {
 
 /* ─── State ─── */
 let products     = normalizeProducts(JSON.parse(localStorage.getItem('haeumchang-products') || 'null') || DEFAULT_PRODUCTS);
-let selectedIdx  = -1;
+let expandedRows = new Set();   // 펼쳐진 상품 행 (여러 개 동시 가능)
 let currentPage  = 'analysis';
 let focusMetric  = '';   // '' | 'cost' | 'exp' | 'mar' — 매트릭스 막대 단일 항목 비교
 let adStats      = loadAdStats();
@@ -1148,14 +1148,14 @@ function renderPills() {
     container.innerHTML = '<div class="empty-state" style="padding:18px 8px">상품 없음</div>';
   } else {
     container.innerHTML = products.map((p, i) =>
-      `<button class="product-list-item ${i === selectedIdx ? 'active' : ''}" onclick="selectProduct(${i})">
+      `<button class="product-list-item ${expandedRows.has(i) ? 'active' : ''}" onclick="selectProduct(${i})">
          <span class="marker"></span><span class="pl-name">${escHtml(p.name)}</span>
        </button>`
     ).join('');
   }
   document.getElementById('productCount').textContent = products.length;
   document.getElementById('topbar-subtitle').textContent =
-    products[selectedIdx] ? '— ' + products[selectedIdx].name : '';
+    expandedRows.size ? expandedRows.size + '개 펼침' : '';
 }
 
 /* ─── 채널별 상세 (아코디언, 각 채널 컬럼 아래 정렬 · 막대 없음) ─── */
@@ -1228,7 +1228,7 @@ function renderMatrix() {
       return `<td class="gauge-cell"><div class="mtx-bar">${bar}</div></td>`;
     }).join('');
 
-    const isOpen = pi === selectedIdx;
+    const isOpen = expandedRows.has(pi);
     const row = `<tr id="mrow-${pi}" class="matrix-row${isOpen ? ' expanded' : ''}" onclick="toggleProduct(${pi})">`
       + `<td class="mtx-name"><span class="caret">${isOpen ? '▾' : '▸'}</span>${escHtml(prod.name)}</td>${cells}</tr>`;
     const detail = isOpen
@@ -1311,7 +1311,7 @@ async function syncFromCsv(url, silent) {
     const parsed = parseCsvToProducts(text);
     if (!parsed.length) throw new Error('데이터 행이 없습니다 (헤더만 있거나 빈 시트)');
     products = normalizeProducts(parsed);
-    if (selectedIdx >= products.length) selectedIdx = -1;
+    expandedRows.clear();
     saveProducts();
     renderAll();
     setSyncStatus('✓ 불러옴 · ' + products.length + '개 상품');
@@ -1347,7 +1347,7 @@ function scrollToRow(i) {
 
 /* 사이드바 목록 클릭 → 해당 상품 펼치고 스크롤 */
 function selectProduct(i) {
-  selectedIdx = i;
+  expandedRows.add(i);
   renderAll();
   scrollToRow(i);
 }
@@ -1359,11 +1359,11 @@ function setFocus(m) {
   renderMatrix();
 }
 
-/* 매트릭스 행 클릭 → 상세 토글 */
+/* 매트릭스 행 클릭 → 상세 토글 (여러 개 동시 펼침, 다시 누르면 닫힘) */
 function toggleProduct(i) {
-  selectedIdx = (selectedIdx === i) ? -1 : i;
+  if (expandedRows.has(i)) expandedRows.delete(i);
+  else expandedRows.add(i);
   renderAll();
-  if (selectedIdx === i) scrollToRow(i);
 }
 
 /* ─── Modals ─── */

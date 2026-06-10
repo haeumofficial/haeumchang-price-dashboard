@@ -465,25 +465,24 @@ body {
 
 .matrix-tbl { table-layout: fixed; }
 
-/* ─── 매트릭스 셀: 원가/경비/마진 누적 막대 ─── */
-td.gauge-cell { padding: 9px 12px; vertical-align: middle; }
+/* ─── 매트릭스 셀: 원가/경비/마진 막대 (세그먼트 안에 %) ─── */
+td.gauge-cell { padding: 9px 10px; vertical-align: middle; }
 .mtx-bar {
-  height: 13px;
+  height: 18px;
   display: flex;
   overflow: hidden;
   background: rgba(0,0,0,0.05);
   border: 1px solid var(--border);
-  margin-bottom: 4px;
 }
-.mtx-seg { height: 100%; }
-.mtx-pct {
-  font-size: 9px;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  text-align: center;
-}
-.mtx-empty { height: 13px; }
+.mtx-seg { height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.mtx-seg.cost { background: #111111; }
+.mtx-seg.exp  { background: #A1A1AA; }
+.mtx-seg.mar  { background: var(--red); }
+.mtx-seg.neg  { background: var(--red); }
+.mtx-seg span { font-size: 8.5px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; padding: 0 2px; }
+.mtx-seg.cost span, .mtx-seg.mar span, .mtx-seg.neg span { color: #fff; }
+.mtx-seg.exp span { color: #1f1f1f; }
+.mtx-empty { height: 18px; }
 
 /* 매트릭스 행 (클릭 펼침) */
 .matrix-row { cursor: pointer; }
@@ -494,18 +493,50 @@ td.gauge-cell { padding: 9px 12px; vertical-align: middle; }
 .matrix-row.expanded .mtx-name { font-weight: 900; }
 .matrix-row.expanded .mtx-name .caret { color: var(--text-primary); }
 
-/* 상세 패널 (펼쳐진 채널 카드) */
+/* 상세 (채널 컬럼 아래 정렬, 막대 없음) */
 .detail-row > td { padding: 0; border-top: 1px solid var(--border-strong); background: var(--bg-hover); }
-.detail-panel { padding: 16px; }
-.detail-panel .channel-grid { margin-bottom: 0; background: var(--bg-card); }
+.detail-grid { display: grid; grid-template-columns: 28% 18% 18% 18% 18%; }
+.ch-detail { padding: 15px 14px 16px; border-left: 1px solid var(--border); }
+.ch-detail.inactive { opacity: 0.5; }
+.chd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 11px; }
+.chd-name { font-size: 11px; font-weight: 900; letter-spacing: 0.01em; line-height: 1.25; }
+.chd-fee { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-top: 3px; }
+.chd-margin { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; line-height: 1; flex-shrink: 0; }
+.chd-rows { display: flex; flex-direction: column; gap: 5px; }
+.chd-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; }
+.chd-row .k { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); font-weight: 700; }
+.chd-row .k em { font-style: normal; font-size: 8px; color: var(--text-tertiary); }
+.chd-row .k b { font-weight: 900; color: var(--text-primary); }
+.chd-row .v { font-weight: 900; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chd-row.mar .k { color: var(--text-primary); }
+.chd-sub { font-size: 8.5px; font-weight: 700; color: var(--text-tertiary); padding-left: 12px; margin-top: -2px; letter-spacing: 0.01em; line-height: 1.4; }
+.chd-line { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+.chd-row .d { width: 7px; height: 7px; display: inline-block; flex-shrink: 0; }
+.chd-row .d.cost { background: #111111; }
+.chd-row .d.exp  { background: #A1A1AA; }
+.chd-row .d.mar  { background: var(--red); }
+.chd-inactive-note { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); padding-top: 6px; }
 
-/* 범례 */
-.mtx-legend { display: flex; gap: 14px; align-items: center; }
-.mtx-legend span { display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
-.mtx-legend .lg { width: 9px; height: 9px; display: inline-block; }
-.mtx-legend .lg.cost { background: #111111; }
-.mtx-legend .lg.exp  { background: #A1A1AA; }
-.mtx-legend .lg.mar  { background: var(--red); }
+/* 범례 (클릭 필터 버튼) */
+.mtx-legend { display: flex; gap: 6px; align-items: center; }
+.lg-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  font-family: inherit;
+  font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.lg-btn:hover { border-color: #000; color: #000; }
+.lg-btn.on { background: #000; color: #fff; border-color: #000; }
+.lg-btn .lg { width: 9px; height: 9px; display: inline-block; }
+.lg-btn .lg.cost { background: #111111; }
+.lg-btn .lg.exp  { background: #A1A1AA; }
+.lg-btn .lg.mar  { background: var(--red); }
+.lg-btn.on .lg { outline: 1px solid rgba(255,255,255,0.5); }
 
 /* Stacked gauge (inventory-style: flat, segmented, striped, sharp) */
 .bar-wrap {
@@ -824,11 +855,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
 
   <div class="sidebar-section">
     <div class="sidebar-section-label">메뉴</div>
-    <button class="nav-item active" id="nav-analysis" onclick="showPage('analysis')">
-      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
-      채널별 분석
-    </button>
-    <button class="nav-item" id="nav-matrix" onclick="showPage('matrix')">
+    <button class="nav-item active" id="nav-matrix" onclick="showPage('matrix')">
       <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
       마진 매트릭스
     </button>
@@ -858,7 +885,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
   <!-- Topbar -->
   <header class="topbar">
     <div>
-      <span class="topbar-title" id="topbar-title">채널별 분석</span>
+      <span class="topbar-title" id="topbar-title">마진 매트릭스</span>
       <span class="topbar-subtitle" id="topbar-subtitle"></span>
     </div>
     <div class="topbar-actions"></div>
@@ -874,9 +901,10 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
           <div class="section-desc">행을 클릭하면 해당 상품의 채널별 상세 분석이 아래로 펼쳐집니다</div>
         </div>
         <div class="mtx-legend">
-          <span><i class="lg cost"></i>원가</span>
-          <span><i class="lg exp"></i>경비</span>
-          <span><i class="lg mar"></i>마진</span>
+          <button class="lg-btn on" data-m="" onclick="setFocus('')">전체</button>
+          <button class="lg-btn" data-m="cost" onclick="setFocus('cost')"><i class="lg cost"></i>원가</button>
+          <button class="lg-btn" data-m="exp" onclick="setFocus('exp')"><i class="lg exp"></i>경비</button>
+          <button class="lg-btn" data-m="mar" onclick="setFocus('mar')"><i class="lg mar"></i>마진</button>
         </div>
       </div>
       <div class="card">
@@ -1031,6 +1059,7 @@ function normalizeProducts(list) {
 let products     = normalizeProducts(JSON.parse(localStorage.getItem('haeumchang-products') || 'null') || DEFAULT_PRODUCTS);
 let selectedIdx  = -1;
 let currentPage  = 'analysis';
+let focusMetric  = '';   // '' | 'cost' | 'exp' | 'mar' — 매트릭스 막대 단일 항목 비교
 let adStats      = loadAdStats();
 let csvUrl       = localStorage.getItem('haeumchang-csv-url') || '';
 
@@ -1128,74 +1157,41 @@ function renderPills() {
     products[selectedIdx] ? '— ' + products[selectedIdx].name : '';
 }
 
-/* ─── 채널 카드 HTML (상세 패널용) ─── */
-function buildChannelCards(p) {
-  return channels.map((ch, i) => {
+/* ─── 채널별 상세 (아코디언, 각 채널 컬럼 아래 정렬 · 막대 없음) ─── */
+function buildChannelDetail(p) {
+  const cards = channels.map((ch, i) => {
     const adPerUnit = getAdPerUnit(i);
     const cr  = calc(p, i, adPerUnit);
 
-    // 판매가 미입력 → 판매 안 함 상태
     if (!cr.active) {
-      return `
-      <div class="channel-card inactive">
-        <div class="ch-header">
-          <div>
-            <div class="ch-name">${ch.name}</div>
-            <div class="ch-fee">수수료 ${ch.feeRate}%</div>
-          </div>
-          <div class="ch-margin-badge" style="color:var(--text-tertiary)">—</div>
+      return `<div class="ch-detail inactive">
+        <div class="chd-head">
+          <div><div class="chd-name">${ch.name}</div><div class="chd-fee">수수료 ${ch.feeRate}%</div></div>
+          <div class="chd-margin" style="color:var(--text-tertiary)">—</div>
         </div>
-        <div class="ch-inactive">
-          <div class="ch-inactive-tag">판매 안 함</div>
-          <div class="ch-inactive-sub">판매가 미입력 채널</div>
-        </div>
+        <div class="chd-inactive-note">판매 안 함 · 판매가 미입력</div>
       </div>`;
     }
 
-    const ms  = marginStyle(cr.profRate);
-    const profBarW  = Math.max(cr.profRate, 0) * 100;
-    const negBarW   = cr.profRate < 0 ? Math.min(Math.abs(cr.profRate), 1) * 100 : 0;
-
-    return `
-    <div class="channel-card">
-      <div class="ch-header">
-        <div>
-          <div class="ch-name">${ch.name}</div>
-          <div class="ch-fee">수수료 ${ch.feeRate}%</div>
-        </div>
-        <div class="ch-margin-badge" style="color:${ms.badge}">${pct(cr.profRate)}</div>
+    const ms = marginStyle(cr.profRate);
+    return `<div class="ch-detail">
+      <div class="chd-head">
+        <div><div class="chd-name">${ch.name}</div><div class="chd-fee">수수료 ${ch.feeRate}%</div></div>
+        <div class="chd-margin" style="color:${ms.badge}">${pct(cr.profRate)}</div>
       </div>
-      <div class="ch-price-line">
-        판매가 <b>${fmt(cr.price)}원</b> · 공급가 ${fmt(cr.priceExVat)}원
-      </div>
-      <div class="bar-wrap">
-        <div class="bar-seg bar-cost"       style="width:${cr.costRate * 100}%"></div>
-        <div class="bar-seg bar-exp"        style="width:${cr.expRate  * 100}%"></div>
-        <div class="bar-seg bar-profit-pos" style="width:${profBarW}%;background:${ms.bar}"></div>
-        <div class="bar-seg bar-profit-neg" style="width:${negBarW}%"></div>
-      </div>
-      <div class="gauge-scale">
-        <span>0%</span><span>공급가 100%</span>
-      </div>
-      <div class="breakdown">
-        <div class="bd-row">
-          <span class="bd-label"><span class="bd-dot" style="background:#111111;border-color:#111111"></span>원가</span>
-          <span class="bd-val"><span class="bd-pct">${pct(cr.costRate)}</span>${fmt(cr.cost)}원</span>
-        </div>
-        <div class="bd-sub">원단 ${fmt(p.fabric)} + 가공 ${fmt(p.process)} + 포장 ${fmt(p.pack)} + 부자재 ${fmt(p.material || 0)}</div>
-        <div class="bd-row">
-          <span class="bd-label"><span class="bd-dot" style="background:#A1A1AA"></span>경비</span>
-          <span class="bd-val"><span class="bd-pct">${pct(cr.expRate)}</span>${fmt(cr.exp)}원</span>
-        </div>
-        <div class="bd-sub">${ch.fulfillment ? '풀필먼트' : '배송'} ${fmt(cr.logistics)} + 수수료 ${fmt(cr.fee)} + 광고 ${fmt(adPerUnit)}</div>
-        <hr class="bd-divider">
-        <div class="bd-row bd-profit-row">
-          <span class="bd-label"><span class="bd-dot" style="background:${ms.dot};border-color:${ms.dot}"></span>마진</span>
-          <span class="bd-val" style="color:${ms.badge}"><span class="bd-pct" style="color:${ms.badge};opacity:.6">${pct(cr.profRate)}</span>${fmt(cr.profit)}원</span>
-        </div>
+      <div class="chd-rows">
+        <div class="chd-row"><span class="k">판매가</span><span class="v">${fmt(cr.price)}원</span></div>
+        <div class="chd-row"><span class="k">공급가 <em>(VAT제외)</em></span><span class="v">${fmt(cr.priceExVat)}원</span></div>
+        <hr class="chd-line">
+        <div class="chd-row"><span class="k"><i class="d cost"></i>원가 <b>${pct(cr.costRate)}</b></span><span class="v">${fmt(cr.cost)}원</span></div>
+        <div class="chd-sub">원단 ${fmt(p.fabric)} + 가공 ${fmt(p.process)} + 포장 ${fmt(p.pack)} + 부자재 ${fmt(p.material || 0)}</div>
+        <div class="chd-row"><span class="k"><i class="d exp"></i>경비 <b>${pct(cr.expRate)}</b></span><span class="v">${fmt(cr.exp)}원</span></div>
+        <div class="chd-sub">${ch.fulfillment ? '풀필먼트' : '배송'} ${fmt(cr.logistics)} + 수수료 ${fmt(cr.fee)} + 광고 ${fmt(adPerUnit)}</div>
+        <div class="chd-row mar"><span class="k"><i class="d mar"></i>마진 <b>${pct(cr.profRate)}</b></span><span class="v" style="color:${ms.badge}">${fmt(cr.profit)}원</span></div>
       </div>
     </div>`;
   }).join('');
+  return `<div class="detail-grid"><div class="detail-spacer"></div>${cards}</div>`;
 }
 
 /* ─── Render: Matrix (원가/경비/마진 막대 + 행 클릭 시 상세 펼침) ─── */
@@ -1207,27 +1203,35 @@ function renderMatrix() {
     const cells = channels.map((ch, ci) => {
       const cr = calc(prod, ci, getAdPerUnit(ci));
       if (!cr.active) return `<td class="gauge-cell"><div class="mtx-empty"></div></td>`;
-      const ms   = marginStyle(cr.profRate);
-      const cost = Math.max(cr.costRate, 0) * 100;
-      const exp  = Math.max(cr.expRate,  0) * 100;
-      const pos  = Math.max(cr.profRate, 0) * 100;
-      const neg  = cr.profRate < 0 ? Math.min(Math.abs(cr.profRate), 1) * 100 : 0;
-      return `<td class="gauge-cell">
-        <div class="mtx-bar">
-          <div class="mtx-seg" style="width:${cost}%;background:#111111"></div>
-          <div class="mtx-seg" style="width:${exp}%;background:#A1A1AA"></div>
-          <div class="mtx-seg" style="width:${pos}%;background:${ms.bar}"></div>
-          <div class="mtx-seg" style="width:${neg}%;background:var(--red)"></div>
-        </div>
-        <div class="mtx-pct" style="color:${ms.badge}">${pct(cr.profRate)}</div>
-      </td>`;
+      const cP = Math.round(cr.costRate * 100), eP = Math.round(cr.expRate * 100), mP = Math.round(cr.profRate * 100);
+
+      let bar;
+      if (focusMetric) {
+        // 단일 항목만 표시 (행 간 비교용)
+        const map = { cost: { rate: cr.costRate, lab: cP, cls: 'cost' },
+                      exp:  { rate: cr.expRate,  lab: eP, cls: 'exp'  },
+                      mar:  { rate: cr.profRate, lab: mP, cls: 'mar'  } }[focusMetric];
+        const neg = map.rate < 0;
+        const w = Math.min(Math.abs(map.rate) * 100, 100);
+        bar = `<div class="mtx-seg ${neg ? 'neg' : map.cls}" style="width:${w}%"><span>${map.lab}%</span></div>`;
+      } else {
+        const cost = Math.max(cr.costRate, 0) * 100;
+        const exp  = Math.max(cr.expRate,  0) * 100;
+        const pos  = Math.max(cr.profRate, 0) * 100;
+        const neg  = cr.profRate < 0 ? Math.min(Math.abs(cr.profRate), 1) * 100 : 0;
+        bar = `<div class="mtx-seg cost" style="width:${cost}%"><span>${cP}%</span></div>`
+            + `<div class="mtx-seg exp" style="width:${exp}%"><span>${eP}%</span></div>`
+            + `<div class="mtx-seg mar" style="width:${pos}%">${pos > 0 ? `<span>${mP}%</span>` : ''}</div>`
+            + `<div class="mtx-seg neg" style="width:${neg}%">${neg > 0 ? `<span>${mP}%</span>` : ''}</div>`;
+      }
+      return `<td class="gauge-cell"><div class="mtx-bar">${bar}</div></td>`;
     }).join('');
 
     const isOpen = pi === selectedIdx;
     const row = `<tr id="mrow-${pi}" class="matrix-row${isOpen ? ' expanded' : ''}" onclick="toggleProduct(${pi})">`
       + `<td class="mtx-name"><span class="caret">${isOpen ? '▾' : '▸'}</span>${escHtml(prod.name)}</td>${cells}</tr>`;
     const detail = isOpen
-      ? `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-panel"><div class="channel-grid">${buildChannelCards(prod)}</div></div></td></tr>`
+      ? `<tr class="detail-row"><td colspan="${colCount}">${buildChannelDetail(prod)}</td></tr>`
       : '';
     return row + detail;
   }).join('');
@@ -1345,6 +1349,13 @@ function selectProduct(i) {
   selectedIdx = i;
   renderAll();
   scrollToRow(i);
+}
+
+/* 범례 클릭 → 막대에 해당 항목만 표시(비교 모드) */
+function setFocus(m) {
+  focusMetric = (focusMetric === m) ? '' : m;
+  document.querySelectorAll('.lg-btn').forEach(b => b.classList.toggle('on', b.dataset.m === focusMetric));
+  renderMatrix();
 }
 
 /* 매트릭스 행 클릭 → 상세 토글 */

@@ -891,7 +891,8 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
         <span class="csv-status" id="csvStatus"></span>
       </div>
       <div class="info-note">
-        <b>스프레드시트 열</b>(1행 = 헤더, 헤더 이름으로 매칭): 상품명 / 원단 / 가공 / 포장 / 배송 / <b>풀필먼트</b> / 판매자배송가 / 로켓그로스가 / 스마트스토어가 / 오늘의집가.<br>
+        <b>스프레드시트 열</b>(1행 = 헤더, 헤더 이름으로 매칭): 상품명 / 원단 / 가공 / 포장 / <b>부자재</b> / 배송 / <b>풀필먼트</b> / 판매자배송가 / 로켓그로스가 / 스마트스토어가 / 오늘의집가.<br>
+        · 원가 = 원단+가공+포장+부자재.<br>
         · <b>풀필먼트</b>는 로켓그로스 전용 물류비(입고+보관+배송)로, 로켓그로스 경비 = 풀필먼트+수수료+광고로 계산됩니다. 다른 채널은 배송+수수료+광고.<br>
         · 판매하지 않는 채널은 가격을 <b>비워두면 "판매 안 함"</b>으로 표시됩니다.<br>
         · 구글 시트: <b>파일 → 공유 → 웹에 게시</b> → 해당 시트, 형식 <b>CSV</b> 선택 → 생성된 링크를 붙여넣으세요.<br>
@@ -916,7 +917,7 @@ const AD_GROUPS = [
   { key: 'store',   label: '스마트스토어' },
   { key: 'ohouse',  label: '오늘의집' }
 ];
-const EXCEL_HEADERS = ['상품명','원단','가공','포장','배송','풀필먼트','판매자배송가','로켓그로스가','스마트스토어가','오늘의집가'];
+const EXCEL_HEADERS = ['상품명','원단','가공','포장','부자재','배송','풀필먼트','판매자배송가','로켓그로스가','스마트스토어가','오늘의집가'];
 
 const DEFAULT_PRODUCTS = [
   { name:'시트커터 100x150', fabric:10800, process:9600,  pack:1000, ship:2727, prices:[54400,49900,59900] },
@@ -983,7 +984,7 @@ function normalizeProducts(list) {
     if (prices.length === channels.length - 1) prices.splice(1, 0, prices[0] || 0);
     while (prices.length < channels.length) prices.push(0);
     prices = prices.slice(0, channels.length);
-    return { ...p, fulfillment: Number(p.fulfillment) || 0, prices };
+    return { ...p, material: Number(p.material) || 0, fulfillment: Number(p.fulfillment) || 0, prices };
   });
 }
 
@@ -999,7 +1000,7 @@ function calc(p, ci, adPerUnit) {
   const active     = price > 0;                 // 판매가 미입력 = 해당 채널 미판매
   const feeRate    = channels[ci].feeRate;
   const priceExVat = price / (1 + VAT_RATE / 100);
-  const cost       = p.fabric + p.process + p.pack;
+  const cost       = p.fabric + p.process + p.pack + (p.material || 0); // 원가 = 원단+가공+포장+부자재
   const fee        = price * (feeRate / 100);
   const logistics  = channels[ci].fulfillment ? (p.fulfillment || 0) : p.ship; // 로켓그로스=풀필먼트, 그 외=배송
   const exp        = logistics + fee + adPerUnit;
@@ -1148,7 +1149,7 @@ function renderChannelCards() {
           <span class="bd-label"><span class="bd-dot" style="background:#111111;border-color:#111111"></span>원가</span>
           <span class="bd-val"><span class="bd-pct">${pct(cr.costRate)}</span>${fmt(cr.cost)}원</span>
         </div>
-        <div class="bd-sub">원단 ${fmt(p.fabric)} + 가공 ${fmt(p.process)} + 포장 ${fmt(p.pack)}</div>
+        <div class="bd-sub">원단 ${fmt(p.fabric)} + 가공 ${fmt(p.process)} + 포장 ${fmt(p.pack)} + 부자재 ${fmt(p.material || 0)}</div>
         <div class="bd-row">
           <span class="bd-label"><span class="bd-dot" style="background:#A1A1AA"></span>경비</span>
           <span class="bd-val"><span class="bd-pct">${pct(cr.expRate)}</span>${fmt(cr.exp)}원</span>
@@ -1210,6 +1211,7 @@ function parseCsvToProducts(text) {
     fabric:      col('원단'),
     process:     col('가공'),
     pack:        col('포장'),
+    material:    col('부자재', '부자재비', 'submaterial'),
     ship:        col('배송'),
     fulfillment: col('풀필먼트', '풀필먼트비', '풀필먼트비용', 'fulfillment'),
     p0:      col('판매자배송가', '쿠팡가', '쿠팡 판매자배송'),
@@ -1230,6 +1232,7 @@ function parseCsvToProducts(text) {
       fabric:      num(cell(r, idx.fabric)),
       process:     num(cell(r, idx.process)),
       pack:        num(cell(r, idx.pack)),
+      material:    num(cell(r, idx.material)),
       ship:        num(cell(r, idx.ship)),
       fulfillment: num(cell(r, idx.fulfillment)),
       prices: [num(cell(r, idx.p0)), num(cell(r, idx.p1)), num(cell(r, idx.p2)), num(cell(r, idx.p3))]

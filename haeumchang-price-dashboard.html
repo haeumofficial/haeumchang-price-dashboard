@@ -464,6 +464,7 @@ body {
 .matrix-gauge.inactive { background: transparent; }
 
 .matrix-tbl { table-layout: fixed; }
+.matrix-tbl thead th { text-align: left; }
 
 /* ─── 매트릭스 셀: 원가/경비/마진 막대 (세그먼트 안에 %) ─── */
 td.gauge-cell { padding: 9px 10px; vertical-align: middle; }
@@ -857,7 +858,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
     <div class="sidebar-section-label">메뉴</div>
     <button class="nav-item active" id="nav-matrix" onclick="showPage('matrix')">
       <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
-      마진 매트릭스
+      해움창 단가표
     </button>
   </div>
 
@@ -885,7 +886,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
   <!-- Topbar -->
   <header class="topbar">
     <div>
-      <span class="topbar-title" id="topbar-title">마진 매트릭스</span>
+      <span class="topbar-title" id="topbar-title">해움창 단가표</span>
       <span class="topbar-subtitle" id="topbar-subtitle"></span>
     </div>
     <div class="topbar-actions"></div>
@@ -897,7 +898,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
     <div class="page active" id="page-analysis">
       <div class="section-header" id="matrix-section">
         <div>
-          <div class="section-title">상품 × 채널 마진 분석</div>
+          <div class="section-title">해움창 단가표</div>
           <div class="section-desc">행을 클릭하면 해당 상품의 채널별 상세 분석이 아래로 펼쳐집니다</div>
         </div>
         <div class="mtx-legend">
@@ -1091,7 +1092,7 @@ function showPage(page) {
   currentPage = page;
   document.querySelectorAll('.nav-item[id]').forEach(n => n.classList.remove('active'));
   document.getElementById('nav-' + page).classList.add('active');
-  const titles = { analysis: '채널별 분석', matrix: '마진 매트릭스' };
+  const titles = { analysis: '채널별 분석', matrix: '해움창 단가표' };
   document.getElementById('topbar-title').textContent = titles[page];
   renderAll();
   if (page === 'matrix') {

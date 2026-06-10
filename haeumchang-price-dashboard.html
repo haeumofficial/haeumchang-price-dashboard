@@ -465,6 +465,48 @@ body {
 
 .matrix-tbl { table-layout: fixed; }
 
+/* ─── 매트릭스 셀: 원가/경비/마진 누적 막대 ─── */
+td.gauge-cell { padding: 9px 12px; vertical-align: middle; }
+.mtx-bar {
+  height: 13px;
+  display: flex;
+  overflow: hidden;
+  background: rgba(0,0,0,0.05);
+  border: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.mtx-seg { height: 100%; }
+.mtx-pct {
+  font-size: 9px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.mtx-empty { height: 13px; }
+
+/* 매트릭스 행 (클릭 펼침) */
+.matrix-row { cursor: pointer; }
+.matrix-row:hover td { background: var(--bg-hover); }
+.matrix-row.expanded td { background: var(--bg-hover); }
+.mtx-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtx-name .caret { display: inline-block; width: 14px; color: var(--text-tertiary); font-size: 9px; }
+.matrix-row.expanded .mtx-name { font-weight: 900; }
+.matrix-row.expanded .mtx-name .caret { color: var(--text-primary); }
+
+/* 상세 패널 (펼쳐진 채널 카드) */
+.detail-row > td { padding: 0; border-top: 1px solid var(--border-strong); background: var(--bg-hover); }
+.detail-panel { padding: 16px; }
+.detail-panel .channel-grid { margin-bottom: 0; background: var(--bg-card); }
+
+/* 범례 */
+.mtx-legend { display: flex; gap: 14px; align-items: center; }
+.mtx-legend span { display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+.mtx-legend .lg { width: 9px; height: 9px; display: inline-block; }
+.mtx-legend .lg.cost { background: #111111; }
+.mtx-legend .lg.exp  { background: #A1A1AA; }
+.mtx-legend .lg.mar  { background: var(--red); }
+
 /* Stacked gauge (inventory-style: flat, segmented, striped, sharp) */
 .bar-wrap {
   height: 16px;
@@ -824,20 +866,17 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
 
   <div class="content">
 
-    <!-- ── 채널별 분석 + 마진 매트릭스 (단일 메인 화면) ── -->
+    <!-- ── 상품 × 채널 마진 분석 (행 클릭 시 상세 펼침) ── -->
     <div class="page active" id="page-analysis">
-      <!-- Channel Cards -->
-      <div class="channel-grid" id="channelCards"></div>
-
-      <div class="info-note">
-        부가세 10%, 채널 수수료 — 쿠팡 판매자배송 <b>10.8%</b> / 쿠팡 로켓그로스 <b>10.8%</b> / 스마트스토어 <b>4.7818%</b> / 오늘의집 <b>20.9091%</b> (모두 부가세 제외 기준). 채널별 광고비는 좌측 사이드바에서 입력하세요.
-      </div>
-
-      <!-- 마진 매트릭스 (메인에 바로 표시) -->
-      <div class="section-header" id="matrix-section" style="margin-top:40px">
+      <div class="section-header" id="matrix-section">
         <div>
-          <div class="section-title">전체 상품 × 채널 마진율 매트릭스</div>
-          <div class="section-desc">행을 클릭하면 위쪽 채널별 분석이 해당 상품 기준으로 갱신됩니다</div>
+          <div class="section-title">상품 × 채널 마진 분석</div>
+          <div class="section-desc">행을 클릭하면 해당 상품의 채널별 상세 분석이 아래로 펼쳐집니다</div>
+        </div>
+        <div class="mtx-legend">
+          <span><i class="lg cost"></i>원가</span>
+          <span><i class="lg exp"></i>경비</span>
+          <span><i class="lg mar"></i>마진</span>
         </div>
       </div>
       <div class="card">
@@ -857,7 +896,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
         </div>
       </div>
       <div class="info-note">
-        막대 길이 = <b>마진율</b>(공급가 대비). 판매가 미입력 채널은 <b>빈 칸</b>으로 표시됩니다. 행을 클릭하면 위쪽 채널별 분석이 해당 상품으로 바뀝니다.
+        막대그래프 = 공급가(부가세 제외) 대비 <b>원가(검정)</b> · <b>경비(회색)</b> · <b style="color:var(--red)">마진(빨강)</b> 구성. 행을 클릭하면 채널별 상세가 펼쳐집니다. 판매가 미입력 채널은 빈 칸. · 수수료: 판매자배송·로켓그로스 10.8% / 스마트스토어 4.78% / 오늘의집 20.9% · 채널별 광고비는 좌측 사이드바에서 입력.
       </div>
     </div>
 
@@ -990,7 +1029,7 @@ function normalizeProducts(list) {
 
 /* ─── State ─── */
 let products     = normalizeProducts(JSON.parse(localStorage.getItem('haeumchang-products') || 'null') || DEFAULT_PRODUCTS);
-let selectedIdx  = 0;
+let selectedIdx  = -1;
 let currentPage  = 'analysis';
 let adStats      = loadAdStats();
 let csvUrl       = localStorage.getItem('haeumchang-csv-url') || '';
@@ -1051,11 +1090,11 @@ function renderAdPanel() {
   AD_GROUPS.forEach(g => {
     document.getElementById('adSpend-' + g.key).addEventListener('input', e => {
       adStats[g.key].ad = parseFloat(e.target.value) || 0;
-      saveAdStats(); updateAdUnits(); renderChannelCards(); renderMatrix();
+      saveAdStats(); renderMatrix();
     });
     document.getElementById('adQty-' + g.key).addEventListener('input', e => {
       adStats[g.key].sales = parseFloat(e.target.value) || 0;
-      saveAdStats(); updateAdUnits(); renderChannelCards(); renderMatrix();
+      saveAdStats(); renderMatrix();
     });
   });
   updateAdUnits();
@@ -1089,15 +1128,9 @@ function renderPills() {
     products[selectedIdx] ? '— ' + products[selectedIdx].name : '';
 }
 
-/* ─── Render: Channel Cards ─── */
-function renderChannelCards() {
-  updateAdUnits();
-
-  const p = products[selectedIdx];
-  const container = document.getElementById('channelCards');
-  if (!p) { container.innerHTML = '<div class="empty-state">상품을 먼저 추가해주세요.</div>'; return; }
-
-  container.innerHTML = channels.map((ch, i) => {
+/* ─── 채널 카드 HTML (상세 패널용) ─── */
+function buildChannelCards(p) {
+  return channels.map((ch, i) => {
     const adPerUnit = getAdPerUnit(i);
     const cr  = calc(p, i, adPerUnit);
 
@@ -1165,27 +1198,38 @@ function renderChannelCards() {
   }).join('');
 }
 
-/* ─── Render: Matrix (inline gauge bars) ─── */
+/* ─── Render: Matrix (원가/경비/마진 막대 + 행 클릭 시 상세 펼침) ─── */
 function renderMatrix() {
+  updateAdUnits();
   const tbody = document.getElementById('matrixBody');
+  const colCount = channels.length + 1;
   tbody.innerHTML = products.map((prod, pi) => {
     const cells = channels.map((ch, ci) => {
       const cr = calc(prod, ci, getAdPerUnit(ci));
-      if (!cr.active) {
-        return `<td class="gauge-cell"><div class="matrix-gauge inactive"></div></td>`;
-      }
-      const ms = marginStyle(cr.profRate);
-      const w  = Math.max(0, Math.min(cr.profRate * 100, 100)); // 마진율 = 공급가 대비 비율
+      if (!cr.active) return `<td class="gauge-cell"><div class="mtx-empty"></div></td>`;
+      const ms   = marginStyle(cr.profRate);
+      const cost = Math.max(cr.costRate, 0) * 100;
+      const exp  = Math.max(cr.expRate,  0) * 100;
+      const pos  = Math.max(cr.profRate, 0) * 100;
+      const neg  = cr.profRate < 0 ? Math.min(Math.abs(cr.profRate), 1) * 100 : 0;
       return `<td class="gauge-cell">
-        <div class="matrix-gauge">
-          <div class="matrix-gauge-fill" style="width:${w}%;background:${ms.gaugeFill}"></div>
-          <span class="matrix-gauge-label" style="color:${ms.gaugeText}">${pct(cr.profRate)}</span>
+        <div class="mtx-bar">
+          <div class="mtx-seg" style="width:${cost}%;background:#111111"></div>
+          <div class="mtx-seg" style="width:${exp}%;background:#A1A1AA"></div>
+          <div class="mtx-seg" style="width:${pos}%;background:${ms.bar}"></div>
+          <div class="mtx-seg" style="width:${neg}%;background:var(--red)"></div>
         </div>
+        <div class="mtx-pct" style="color:${ms.badge}">${pct(cr.profRate)}</div>
       </td>`;
     }).join('');
-    const sel = pi === selectedIdx ? ' selected' : '';
-    return `<tr class="${sel}" onclick="selectProduct(${pi}, true)">${
-      `<td>${escHtml(prod.name)}</td>`}${cells}</tr>`;
+
+    const isOpen = pi === selectedIdx;
+    const row = `<tr id="mrow-${pi}" class="matrix-row${isOpen ? ' expanded' : ''}" onclick="toggleProduct(${pi})">`
+      + `<td class="mtx-name"><span class="caret">${isOpen ? '▾' : '▸'}</span>${escHtml(prod.name)}</td>${cells}</tr>`;
+    const detail = isOpen
+      ? `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-panel"><div class="channel-grid">${buildChannelCards(prod)}</div></div></td></tr>`
+      : '';
+    return row + detail;
   }).join('');
 }
 
@@ -1262,7 +1306,7 @@ async function syncFromCsv(url, silent) {
     const parsed = parseCsvToProducts(text);
     if (!parsed.length) throw new Error('데이터 행이 없습니다 (헤더만 있거나 빈 시트)');
     products = normalizeProducts(parsed);
-    if (selectedIdx >= products.length) selectedIdx = 0;
+    if (selectedIdx >= products.length) selectedIdx = -1;
     saveProducts();
     renderAll();
     setSyncStatus('✓ 불러옴 · ' + products.length + '개 상품');
@@ -1287,15 +1331,27 @@ function escHtml(s) {
 
 function renderAll() {
   renderPills();
-  renderChannelCards();
   renderMatrix();
 }
 
 /* ─── Actions ─── */
-function selectProduct(i, goToAnalysis) {
+function scrollToRow(i) {
+  const row = document.getElementById('mrow-' + i);
+  if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* 사이드바 목록 클릭 → 해당 상품 펼치고 스크롤 */
+function selectProduct(i) {
   selectedIdx = i;
-  if (goToAnalysis) showPage('analysis');
-  else renderAll();
+  renderAll();
+  scrollToRow(i);
+}
+
+/* 매트릭스 행 클릭 → 상세 토글 */
+function toggleProduct(i) {
+  selectedIdx = (selectedIdx === i) ? -1 : i;
+  renderAll();
+  if (selectedIdx === i) scrollToRow(i);
 }
 
 /* ─── Modals ─── */

@@ -372,7 +372,17 @@ body {
   background: rgba(0,0,0,0.15);
   transition: background 0.12s;
 }
-.product-list-item .pl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.product-list-item .pl-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.product-list-item .pl-count {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--text-tertiary);
+  background: var(--accent-bg);
+  padding: 1px 6px;
+}
+.product-list-item.active .pl-count { color: #000; background: rgba(0,0,0,0.08); }
+.product-list-item.all-item { border-bottom: 1px solid var(--border-strong); }
 .product-list-item.active {
   color: #000;
   font-weight: 900;
@@ -588,10 +598,10 @@ td.gauge-cell { padding: 9px 10px; vertical-align: middle; }
   border: 1px solid var(--border);
   border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow: visible; }
 table {
   width: 100%;
   border-collapse: collapse;
@@ -610,7 +620,44 @@ thead th {
   white-space: nowrap;
   border-bottom: 1px solid var(--border-strong);
 }
+.matrix-tbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #000;             /* 항상 검정 솔리드 고정 */
+  color: #fff;
+  box-shadow: inset 0 -1px 0 #000;
+  font-size: 12.5px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  padding: 14px 16px;
+}
+.matrix-tbl thead th span { font-size: 10px; }
 thead th:first-child { text-align: left; }
+
+/* 헤더(고정 행) 클릭 → 채널별 평균 토글 — hover 에도 솔리드 검정 유지 */
+.matrix-head-row { cursor: pointer; }
+.matrix-head-row th,
+.matrix-head-row:hover th { background: #000 !important; }
+.matrix-head-row th .caret { display: inline-block; width: 14px; color: #fff; font-size: 11px; }
+.matrix-head-row .avg-hint {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.06em;
+  color: #fff; opacity: 0.7; margin-left: 6px;
+}
+.matrix-head-row.avg-on .avg-hint { opacity: 0.95; }
+
+/* 채널별 평균 행 — 헤더 바로 아래에 고정(sticky), hover 에도 솔리드 유지 */
+.avg-row td {
+  position: sticky;
+  top: var(--avg-top, 50px);
+  z-index: 20;
+  background: #ECE9E2 !important;   /* 불투명 — 스크롤·hover 시 아래 행이 비치지 않도록 */
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 2px solid var(--border-strong);
+}
+.avg-row:hover td { background: #ECE9E2 !important; }
+.avg-row .avg-name { font-weight: 900; font-size: 12px; letter-spacing: -0.1px; color: var(--text-primary); }
 tbody td {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
@@ -883,22 +930,13 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
      MAIN
 ═══════════════════════════════════════ -->
 <div class="main">
-  <!-- Topbar -->
-  <header class="topbar">
-    <div>
-      <span class="topbar-title" id="topbar-title">해움창 단가표</span>
-      <span class="topbar-subtitle" id="topbar-subtitle"></span>
-    </div>
-    <div class="topbar-actions"></div>
-  </header>
-
   <div class="content">
 
     <!-- ── 상품 × 채널 마진 분석 (행 클릭 시 상세 펼침) ── -->
     <div class="page active" id="page-analysis">
       <div class="section-header" id="matrix-section">
         <div>
-          <div class="section-title">해움창 단가표</div>
+          <div class="section-title" id="matrixTitle">해움창 단가표</div>
           <div class="section-desc">행을 클릭하면 해당 상품의 채널별 상세 분석이 아래로 펼쳐집니다</div>
         </div>
         <div class="mtx-legend">
@@ -912,12 +950,12 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
         <div class="table-wrap">
           <table class="matrix-tbl">
             <thead>
-              <tr>
-                <th style="width:28%">상품</th>
+              <tr class="matrix-head-row" id="matrixHeadRow" onclick="toggleAvg()" title="클릭하면 현재 노출된 옵션의 채널별 평균(원가·경비·마진)을 표시합니다">
+                <th style="width:28%"><span class="caret" id="avgCaret">▸</span>상품 <span class="avg-hint">평균보기</span></th>
                 <th style="width:18%">쿠팡 판매자배송 <span style="font-weight:700;opacity:.6">10.8%</span></th>
                 <th style="width:18%">쿠팡 로켓그로스 <span style="font-weight:700;opacity:.6">10.8%</span></th>
                 <th style="width:18%">스마트스토어 <span style="font-weight:700;opacity:.6">4.78%</span></th>
-                <th style="width:18%">오늘의집 <span style="font-weight:700;opacity:.6">20.9%</span></th>
+                <th style="width:18%">오늘의집 <span style="font-weight:700;opacity:.6">13.64%</span></th>
               </tr>
             </thead>
             <tbody id="matrixBody"></tbody>
@@ -925,7 +963,7 @@ td.gauge-cell { padding: 7px 12px; text-align: left; }
         </div>
       </div>
       <div class="info-note">
-        막대그래프 = 공급가(부가세 제외) 대비 <b>원가(검정)</b> · <b>경비(회색)</b> · <b style="color:var(--red)">마진(빨강)</b> 구성. 행을 클릭하면 채널별 상세가 펼쳐집니다. 판매가 미입력 채널은 빈 칸. · 수수료: 판매자배송·로켓그로스 10.8% / 스마트스토어 4.78% / 오늘의집 20.9% · 채널별 광고비는 좌측 사이드바에서 입력.
+        막대그래프 = 공급가(부가세 제외) 대비 <b>원가(검정)</b> · <b>경비(회색)</b> · <b style="color:var(--red)">마진(빨강)</b> 구성. 행을 클릭하면 채널별 상세가 펼쳐집니다. 판매가 미입력 채널은 빈 칸. · 수수료: 판매자배송·로켓그로스 10.8% / 스마트스토어 4.78% / 오늘의집 13.64% · 채널별 광고비는 좌측 사이드바에서 입력.
       </div>
     </div>
 
@@ -977,7 +1015,7 @@ const channels = [
   { name: '쿠팡 판매자배송', feeRate: 10.8,    adGroup: 'coupang' },
   { name: '쿠팡 로켓그로스', feeRate: 10.8,    adGroup: 'coupang', fulfillment: true },
   { name: '스마트스토어',     feeRate: 4.7818,  adGroup: 'store'   },
-  { name: '오늘의집',       feeRate: 20.9091, adGroup: 'ohouse'  }
+  { name: '오늘의집',       feeRate: 13.64,   adGroup: 'ohouse'  }
 ];
 /* 광고비 공유 그룹 — 쿠팡 2채널은 광고를 함께 운영하므로 동일 데이터 공유 */
 const AD_GROUPS = [
@@ -987,19 +1025,49 @@ const AD_GROUPS = [
 ];
 const EXCEL_HEADERS = ['상품명','원단','가공','포장','부자재','배송','풀필먼트','판매자배송가','로켓그로스가','스마트스토어가','오늘의집가'];
 
+/* 샘플 데이터 (CSV 미연동 시 표시) — prices: [판매자배송가, 로켓그로스가, 스마트스토어가, 오늘의집가]
+   ※ 숫자는 자리표시용 예시값입니다. 실제 원가/판매가는 CSV 연동으로 채워주세요.
+   상품명 = "상품군 + 사이즈" → 사이드바엔 군(솔트쉬폰 1P / 솔트쉬폰 2P / 소이암막 2P)만 표시되고,
+   군을 누르면 해당 사이즈 옵션만 메인에 노출됩니다. */
 const DEFAULT_PRODUCTS = [
-  { name:'시트커터 100x150', fabric:10800, process:9600,  pack:1000, ship:2727, prices:[54400,49900,59900] },
-  { name:'시트커터 125x230', fabric:11500, process:11600, pack:950,  ship:3500, prices:[62900,57900,67900] },
-  { name:'시트커터 150x230', fabric:13500, process:13600, pack:950,  ship:3500, prices:[69400,64900,74900] },
-  { name:'시트커터 150x250', fabric:13500, process:13600, pack:950,  ship:5000, prices:[73400,67900,78900] },
-  { name:'아이슬란 100x150', fabric:14500, process:11000, pack:1000, ship:3000, prices:[69900,64900,75900] },
-  { name:'아이슬란 150x230', fabric:19500, process:15500, pack:950,  ship:4000, prices:[89900,82900,96900] },
-  { name:'아이슬란 150x250', fabric:19500, process:15500, pack:950,  ship:5500, prices:[94900,87900,99900] }
+  // 솔트쉬폰 1P → 군 "솔트쉬폰 1P"
+  { name:'솔트쉬폰_나비_가로100 x 세로135 cm 1P', fabric:10800, process:9600,  pack:1000, material:600, ship:2727, fulfillment:3200, prices:[39900,41900,35900,44900] },
+  { name:'솔트쉬폰_나비_가로100 x 세로180 cm 1P', fabric:12500, process:10600, pack:1000, material:700, ship:3000, fulfillment:3400, prices:[45900,47900,41900,49900] },
+  { name:'솔트쉬폰_나비_가로130 x 세로230 cm 1P', fabric:15500, process:12600, pack:950,  material:800, ship:3500, fulfillment:3700, prices:[54900,56900,49900,59900] },
+  // 솔트쉬폰 2P → 군 "솔트쉬폰 2P"
+  { name:'솔트쉬폰_나비_가로100 x 세로135 cm 2P', fabric:21600, process:15200, pack:1300, material:900, ship:3000, fulfillment:3600, prices:[69900,71900,64900,75900] },
+  { name:'솔트쉬폰_나비_가로100 x 세로180 cm 2P', fabric:24500, process:17200, pack:1300, material:1000,ship:3500, fulfillment:3900, prices:[79900,81900,74900,85900] },
+  { name:'솔트쉬폰_나비_가로130 x 세로230 cm 2P', fabric:30500, process:21200, pack:1250, material:1100,ship:4500, fulfillment:4300, prices:[94900,96900,87900,99900] },
+  // 소이암막 2P → 군 "소이암막 2P"
+  { name:'소이암막_무지_가로100 x 세로135 cm 2P', fabric:25600, process:16200, pack:1300, material:900, ship:3000, fulfillment:3700, prices:[79900,81900,74900,85900] },
+  { name:'소이암막_무지_가로100 x 세로180 cm 2P', fabric:28500, process:18200, pack:1300, material:1000,ship:3500, fulfillment:4000, prices:[89900,91900,84900,95900] },
+  { name:'소이암막_무지_가로130 x 세로230 cm 2P', fabric:34500, process:22200, pack:1250, material:1200,ship:4500, fulfillment:4400, prices:[109900,111900,99900,119900] }
 ];
 
 /* ─── Helpers ─── */
 const fmt  = n => Math.round(n).toLocaleString('ko-KR');
 const pct  = n => (n * 100).toFixed(1) + '%';
+
+/* 상품군 = "제품명(맨 앞) + 구성(맨 뒤 N P)"
+   로우데이터 예) "솔트쉬폰_나비_가로150 x 세로150 cm 1P"
+     → 제품명 "솔트쉬폰" (첫 '_'/공백 앞) + 구성 "1P" (맨 뒤 숫자+P) = 군 "솔트쉬폰 1P" */
+function productGroup(name) {
+  const n = String(name).trim();
+  const base = n.split(/[_\s]/)[0].trim();                 // 맨 앞 제품명
+  const pm   = n.match(/(\d+)\s*P\b\s*$/i);                // 맨 뒤 구성(1P/2P…)
+  const pack = pm ? pm[1] + 'P' : '';
+  return (base + (pack ? ' ' + pack : '')).trim() || n;
+}
+/* 등장 순서대로 상품군 → 해당 상품 인덱스 배열 */
+function getGroups() {
+  const map = new Map();
+  products.forEach((p, i) => {
+    const g = productGroup(p.name);
+    if (!map.has(g)) map.set(g, []);
+    map.get(g).push(i);
+  });
+  return map;
+}
 
 function saveProducts() { localStorage.setItem('haeumchang-products', JSON.stringify(products)); }
 
@@ -1057,8 +1125,20 @@ function normalizeProducts(list) {
 }
 
 /* ─── State ─── */
-let products     = normalizeProducts(JSON.parse(localStorage.getItem('haeumchang-products') || 'null') || DEFAULT_PRODUCTS);
+/* 샘플 데이터 버전 — 올리면 기존 브라우저에 캐시된 옛 샘플(시트커터 등)을 1회 초기화.
+   단, CSV로 직접 불러온 데이터(haeumchang-csv-url 있음)는 보존. */
+const SAMPLE_VERSION = '2026-06-saltchiffon-v2';
+const _hasCsv = !!localStorage.getItem('haeumchang-csv-url');
+if (!_hasCsv && localStorage.getItem('haeumchang-sample-version') !== SAMPLE_VERSION) {
+  localStorage.removeItem('haeumchang-products');
+}
+localStorage.setItem('haeumchang-sample-version', SAMPLE_VERSION);
+const _storedProducts = JSON.parse(localStorage.getItem('haeumchang-products') || 'null');
+let products     = normalizeProducts((Array.isArray(_storedProducts) && _storedProducts.length) ? _storedProducts : DEFAULT_PRODUCTS);
 let expandedRows = new Set();   // 펼쳐진 상품 행 (여러 개 동시 가능)
+let selectedGroups = new Set(); // 좌측 사이드바에서 선택된 상품군 (비어있음 = 전체)
+let groupKeys    = [];          // 렌더된 상품군 키 목록 (사이드바 클릭 인덱스 매핑)
+let showAvg      = false;       // 헤더 클릭 시 채널별 평균 행 표시
 let currentPage  = 'analysis';
 let focusMetric  = '';   // '' | 'cost' | 'exp' | 'mar' — 매트릭스 막대 단일 항목 비교
 let adStats      = loadAdStats();
@@ -1093,7 +1173,8 @@ function showPage(page) {
   document.querySelectorAll('.nav-item[id]').forEach(n => n.classList.remove('active'));
   document.getElementById('nav-' + page).classList.add('active');
   const titles = { analysis: '채널별 분석', matrix: '해움창 단가표' };
-  document.getElementById('topbar-title').textContent = titles[page];
+  const tt = document.getElementById('topbar-title');
+  if (tt) tt.textContent = titles[page];
   renderAll();
   if (page === 'matrix') {
     document.getElementById('matrix-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1144,18 +1225,29 @@ function updateAdUnits() {
 /* ─── Render: Sidebar Product List ─── */
 function renderPills() {
   const container = document.getElementById('productList');
-  if (!products.length) {
+  const groups = getGroups();
+  groupKeys = [...groups.keys()];
+  // 존재하지 않는 군 선택 정리 (CSV 재동기화 등)
+  [...selectedGroups].forEach(k => { if (!groups.has(k)) selectedGroups.delete(k); });
+  if (!groupKeys.length) {
     container.innerHTML = '<div class="empty-state" style="padding:18px 8px">상품 없음</div>';
   } else {
-    container.innerHTML = products.map((p, i) =>
-      `<button class="product-list-item ${expandedRows.has(i) ? 'active' : ''}" onclick="selectProduct(${i})">
-         <span class="marker"></span><span class="pl-name">${escHtml(p.name)}</span>
+    const allBtn =
+      `<button class="product-list-item all-item ${selectedGroups.size === 0 ? 'active' : ''}" onclick="selectAllGroups()">
+         <span class="marker"></span><span class="pl-name">전체</span>
+         <span class="pl-count">${products.length}</span>
+       </button>`;
+    const items = groupKeys.map((k, i) =>
+      `<button class="product-list-item ${selectedGroups.has(k) ? 'active' : ''}" onclick="selectGroup(${i})">
+         <span class="marker"></span><span class="pl-name">${escHtml(k)}</span>
+         <span class="pl-count">${groups.get(k).length}</span>
        </button>`
     ).join('');
+    container.innerHTML = allBtn + items;
   }
-  document.getElementById('productCount').textContent = products.length;
-  document.getElementById('topbar-subtitle').textContent =
-    expandedRows.size ? expandedRows.size + '개 펼침' : '';
+  document.getElementById('productCount').textContent = groupKeys.length;
+  const sub = document.getElementById('topbar-subtitle');
+  if (sub) sub.textContent = expandedRows.size ? expandedRows.size + '개 펼침' : '';
 }
 
 /* ─── 채널별 상세 (아코디언, 각 채널 컬럼 아래 정렬 · 막대 없음) ─── */
@@ -1195,47 +1287,86 @@ function buildChannelDetail(p) {
   return `<div class="detail-grid"><div class="detail-spacer"></div>${cards}</div>`;
 }
 
+/* 원가/경비/마진 비율 → 막대 세그먼트 HTML (focusMetric 시 단일 항목만) */
+function buildMtxBar(costRate, expRate, profRate) {
+  const cP = Math.round(costRate * 100), eP = Math.round(expRate * 100), mP = Math.round(profRate * 100);
+  if (focusMetric) {
+    const map = { cost: { rate: costRate, lab: cP, cls: 'cost' },
+                  exp:  { rate: expRate,  lab: eP, cls: 'exp'  },
+                  mar:  { rate: profRate, lab: mP, cls: 'mar'  } }[focusMetric];
+    const neg = map.rate < 0;
+    const w = Math.min(Math.abs(map.rate) * 100, 100);
+    return `<div class="mtx-seg ${neg ? 'neg' : map.cls}" style="width:${w}%"><span>${map.lab}%</span></div>`;
+  }
+  const cost = Math.max(costRate, 0) * 100;
+  const exp  = Math.max(expRate,  0) * 100;
+  const pos  = Math.max(profRate, 0) * 100;
+  const neg  = profRate < 0 ? Math.min(Math.abs(profRate), 1) * 100 : 0;
+  return `<div class="mtx-seg cost" style="width:${cost}%"><span>${cP}%</span></div>`
+       + `<div class="mtx-seg exp" style="width:${exp}%"><span>${eP}%</span></div>`
+       + `<div class="mtx-seg mar" style="width:${pos}%">${pos > 0 ? `<span>${mP}%</span>` : ''}</div>`
+       + `<div class="mtx-seg neg" style="width:${neg}%">${neg > 0 ? `<span>${mP}%</span>` : ''}</div>`;
+}
+
+/* 현재 노출 중인 옵션들의 채널별 평균 행 (헤더 클릭 시 표시) */
+function buildAvgRow(visible) {
+  const cells = channels.map((ch, ci) => {
+    const adpu = getAdPerUnit(ci);
+    const list = visible.map(p => calc(p, ci, adpu)).filter(cr => cr.active);
+    if (!list.length) return `<td class="gauge-cell"><div class="mtx-empty"></div></td>`;
+    const avg = key => list.reduce((s, c) => s + c[key], 0) / list.length;
+    return `<td class="gauge-cell"><div class="mtx-bar">${buildMtxBar(avg('costRate'), avg('expRate'), avg('profRate'))}</div></td>`;
+  }).join('');
+  return `<tr class="avg-row"><td class="mtx-name avg-name">채널별 평균 · ${visible.length}개 옵션</td>${cells}</tr>`;
+}
+
 /* ─── Render: Matrix (원가/경비/마진 막대 + 행 클릭 시 상세 펼침) ─── */
 function renderMatrix() {
   updateAdUnits();
+  const titleEl = document.getElementById('matrixTitle');
+  if (titleEl) {
+    let suffix = '';
+    if (selectedGroups.size === 1) suffix = ' · ' + [...selectedGroups][0];
+    else if (selectedGroups.size > 1) suffix = ' · ' + selectedGroups.size + '개 군';
+    titleEl.textContent = '해움창 단가표' + suffix;
+  }
+  const caret = document.getElementById('avgCaret');
+  if (caret) caret.textContent = showAvg ? '▾' : '▸';
+  const headRow = document.getElementById('matrixHeadRow');
+  if (headRow) headRow.classList.toggle('avg-on', showAvg);
+
   const tbody = document.getElementById('matrixBody');
   const colCount = channels.length + 1;
-  tbody.innerHTML = products.map((prod, pi) => {
+
+  const inView = prod => selectedGroups.size === 0 || selectedGroups.has(productGroup(prod.name));
+  const visible = products.filter(inView);
+  const avgRow = (showAvg && visible.length) ? buildAvgRow(visible) : '';
+
+  const rows = products.map((prod, pi) => {
+    if (!inView(prod)) return '';
     const cells = channels.map((ch, ci) => {
       const cr = calc(prod, ci, getAdPerUnit(ci));
       if (!cr.active) return `<td class="gauge-cell"><div class="mtx-empty"></div></td>`;
-      const cP = Math.round(cr.costRate * 100), eP = Math.round(cr.expRate * 100), mP = Math.round(cr.profRate * 100);
-
-      let bar;
-      if (focusMetric) {
-        // 단일 항목만 표시 (행 간 비교용)
-        const map = { cost: { rate: cr.costRate, lab: cP, cls: 'cost' },
-                      exp:  { rate: cr.expRate,  lab: eP, cls: 'exp'  },
-                      mar:  { rate: cr.profRate, lab: mP, cls: 'mar'  } }[focusMetric];
-        const neg = map.rate < 0;
-        const w = Math.min(Math.abs(map.rate) * 100, 100);
-        bar = `<div class="mtx-seg ${neg ? 'neg' : map.cls}" style="width:${w}%"><span>${map.lab}%</span></div>`;
-      } else {
-        const cost = Math.max(cr.costRate, 0) * 100;
-        const exp  = Math.max(cr.expRate,  0) * 100;
-        const pos  = Math.max(cr.profRate, 0) * 100;
-        const neg  = cr.profRate < 0 ? Math.min(Math.abs(cr.profRate), 1) * 100 : 0;
-        bar = `<div class="mtx-seg cost" style="width:${cost}%"><span>${cP}%</span></div>`
-            + `<div class="mtx-seg exp" style="width:${exp}%"><span>${eP}%</span></div>`
-            + `<div class="mtx-seg mar" style="width:${pos}%">${pos > 0 ? `<span>${mP}%</span>` : ''}</div>`
-            + `<div class="mtx-seg neg" style="width:${neg}%">${neg > 0 ? `<span>${mP}%</span>` : ''}</div>`;
-      }
-      return `<td class="gauge-cell"><div class="mtx-bar">${bar}</div></td>`;
+      return `<td class="gauge-cell"><div class="mtx-bar">${buildMtxBar(cr.costRate, cr.expRate, cr.profRate)}</div></td>`;
     }).join('');
 
     const isOpen = expandedRows.has(pi);
+    const label  = prod.name;   // 옵션은 전체 이름 그대로 노출
     const row = `<tr id="mrow-${pi}" class="matrix-row${isOpen ? ' expanded' : ''}" onclick="toggleProduct(${pi})">`
-      + `<td class="mtx-name"><span class="caret">${isOpen ? '▾' : '▸'}</span>${escHtml(prod.name)}</td>${cells}</tr>`;
+      + `<td class="mtx-name"><span class="caret">${isOpen ? '▾' : '▸'}</span>${escHtml(label)}</td>${cells}</tr>`;
     const detail = isOpen
       ? `<tr class="detail-row"><td colspan="${colCount}">${buildChannelDetail(prod)}</td></tr>`
       : '';
     return row + detail;
   }).join('');
+
+  tbody.innerHTML = avgRow + rows;
+
+  // 평균 행을 헤더 바로 아래에 고정시키기 위해 헤더 실제 높이를 측정해 반영
+  if (showAvg && headRow) {
+    const tableEl = tbody.closest('table');
+    if (tableEl) tableEl.style.setProperty('--avg-top', headRow.offsetHeight + 'px');
+  }
 }
 
 /* ─── CSV 연동 (스프레드시트 → CSV 링크) ─── */
@@ -1312,6 +1443,7 @@ async function syncFromCsv(url, silent) {
     if (!parsed.length) throw new Error('데이터 행이 없습니다 (헤더만 있거나 빈 시트)');
     products = normalizeProducts(parsed);
     expandedRows.clear();
+    selectedGroups.clear();
     saveProducts();
     renderAll();
     setSyncStatus('✓ 불러옴 · ' + products.length + '개 상품');
@@ -1345,17 +1477,35 @@ function scrollToRow(i) {
   if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-/* 사이드바 목록 클릭 → 해당 상품 펼치고 스크롤 */
-function selectProduct(i) {
-  expandedRows.add(i);
+/* 사이드바 군 클릭 → 토글 (여러 개 동시 선택 가능, 비어있으면 전체) */
+function selectGroup(i) {
+  const key = groupKeys[i];
+  if (key == null) return;
+  if (selectedGroups.has(key)) selectedGroups.delete(key);
+  else selectedGroups.add(key);
+  expandedRows.clear();   // 선택이 바뀌면 펼침 초기화
   renderAll();
-  scrollToRow(i);
+  document.getElementById('matrix-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* '전체' 클릭 → 선택 해제(모든 군 표시) */
+function selectAllGroups() {
+  selectedGroups.clear();
+  expandedRows.clear();
+  renderAll();
+  document.getElementById('matrix-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /* 범례 클릭 → 막대에 해당 항목만 표시(비교 모드) */
 function setFocus(m) {
   focusMetric = (focusMetric === m) ? '' : m;
   document.querySelectorAll('.lg-btn').forEach(b => b.classList.toggle('on', b.dataset.m === focusMetric));
+  renderMatrix();
+}
+
+/* 헤더(고정 행) 클릭 → 현재 노출 옵션의 채널별 평균 막대 토글 */
+function toggleAvg() {
+  showAvg = !showAvg;
   renderMatrix();
 }
 
